@@ -52,6 +52,9 @@ button:disabled{opacity:.6;cursor:wait}
 @keyframes cap{from{transform:rotate(-3deg) scale(1.5);opacity:0}to{transform:rotate(-3deg) scale(1);opacity:1}}
 @media (prefers-reduced-motion:reduce){.stamp{animation:none}}
 .fp{font:.85rem ui-monospace,Consolas,monospace}
+ol.steps{margin:8px 0 0;padding-left:22px}
+ol.steps li{margin:6px 0}
+h3.sub{font:600 1rem system-ui,sans-serif;margin:18px 0 2px}
 footer{color:var(--muted);font-size:.85rem;margin-top:28px}
 .note{font-size:.88rem;color:var(--muted);margin-top:10px}
 @media (max-width:520px){h1{font-size:1.9rem}nav button{font-size:.85rem;padding:9px 4px}}
@@ -66,6 +69,7 @@ footer{color:var(--muted);font-size:.85rem;margin-top:28px}
     <button role="tab" aria-selected="true" data-tab="enkripsi">Kunci berkas</button>
     <button role="tab" aria-selected="false" data-tab="hash">Cek keaslian</button>
     <button role="tab" aria-selected="false" data-tab="ttd">Tanda tangan</button>
+    <button role="tab" aria-selected="false" data-tab="panduan">Panduan</button>
   </nav>
 
   <!-- ENKRIPSI -->
@@ -156,6 +160,80 @@ footer{color:var(--muted);font-size:.85rem;margin-top:28px}
     </section>
   </div>
 
+  <!-- PANDUAN -->
+  <div class="panel" id="tab-panduan" role="tabpanel">
+    <p class="intro">Pilih kebutuhan Anda, lalu ikuti langkahnya satu per satu.</p>
+
+    <section class="block">
+      <h2>Mengirim berkas rahasia</h2>
+      <p class="hint">Cocok untuk berkas nilai, data siswa, atau dokumen pribadi yang dikirim lewat WhatsApp atau email.</p>
+      <h3 class="sub">Untuk pengirim</h3>
+      <ol class="steps">
+        <li>Buka tab <strong>Kunci berkas</strong>.</li>
+        <li>Pada bagian "Kunci berkas", pilih berkas Anda. Atau tulis pesan di kotak teks.</li>
+        <li>Ketik kata sandi, minimal 8 karakter. Kalimat panjang lebih sulit ditebak, misalnya empat kata acak.</li>
+        <li>Klik <strong>Kunci sekarang</strong>.</li>
+        <li>Klik tombol <strong>Unduh ... .brnk</strong>. Berkas terkunci tersimpan di folder unduhan.</li>
+        <li>Kirim berkas .brnk ke penerima. Beri tahu kata sandinya lewat jalur lain, misalnya telepon atau tatap muka.</li>
+      </ol>
+      <h3 class="sub">Untuk penerima</h3>
+      <ol class="steps">
+        <li>Buka tab <strong>Kunci berkas</strong>, lalu cari bagian "Buka berkas".</li>
+        <li>Pilih berkas .brnk dan ketik kata sandi dari pengirim.</li>
+        <li>Klik <strong>Buka berkas</strong>, lalu unduh berkas aslinya.</li>
+      </ol>
+      <p class="note">Jika muncul "Kata sandi salah", periksa huruf besar dan kecil. Bisa juga berkasnya sudah rusak atau diubah orang lain.</p>
+      <div class="actions"><button type="button" class="secondary" data-go="enkripsi">Buka tab Kunci berkas</button></div>
+    </section>
+
+    <section class="block">
+      <h2>Mengecek berkas masih asli</h2>
+      <p class="hint">Cocok untuk file unduhan, hasil backup, atau salinan di flashdisk.</p>
+      <ol class="steps">
+        <li>Buka tab <strong>Cek keaslian</strong>.</li>
+        <li>Pilih berkas. Dua sidik jari (SHA-256 dan SHA-512) muncul otomatis.</li>
+        <li>Pilih salah satu cara membandingkan: tempel hash resmi dari situs penyedia berkas ke kotak yang tersedia, atau pilih berkas lain untuk dibandingkan.</li>
+        <li>Lihat hasilnya. <strong>Cocok</strong> berarti berkas utuh. <strong>Berbeda</strong> berarti berkas rusak atau sudah diubah, jadi jangan dipakai dan unduh ulang.</li>
+      </ol>
+      <div class="actions"><button type="button" class="secondary" data-go="hash">Buka tab Cek keaslian</button></div>
+    </section>
+
+    <section class="block">
+      <h2>Menandatangani dokumen</h2>
+      <p class="hint">Cocok untuk surat, laporan, atau soal ujian yang dibagikan ke banyak orang.</p>
+      <h3 class="sub">Langkah awal (cukup sekali)</h3>
+      <ol class="steps">
+        <li>Buka tab <strong>Tanda tangan</strong>, lalu cari bagian "1. Buat pasangan kunci".</li>
+        <li>Isi nama Anda dan kata sandi (disarankan), lalu klik <strong>Buat kunci</strong>.</li>
+        <li>Unduh dua berkas: <strong>kunci privat</strong> (simpan sendiri, jangan dibagikan) dan <strong>kunci publik</strong> (boleh dibagikan). Catat sidik jari kuncinya.</li>
+      </ol>
+      <h3 class="sub">Untuk penanda tangan</h3>
+      <ol class="steps">
+        <li>Pada bagian "2. Tanda tangani berkas", pilih dokumen dan berkas kunci privat Anda.</li>
+        <li>Isi kata sandi kunci jika tadi memakainya, lalu klik <strong>Tanda tangani</strong>.</li>
+        <li>Unduh berkas .sig.json.</li>
+        <li>Kirim dokumen asli bersama .sig.json. Kunci publik cukup dikirim sekali ke penerima.</li>
+      </ol>
+      <h3 class="sub">Untuk penerima</h3>
+      <ol class="steps">
+        <li>Pada bagian "3. Verifikasi tanda tangan", pilih dokumen, berkas .sig.json, dan kunci publik penanda tangan.</li>
+        <li>Klik <strong>Periksa keaslian</strong>. <strong>Asli</strong> berarti dokumen benar dari pemilik kunci dan belum diubah. <strong>Tidak valid</strong> berarti jangan dipercaya.</li>
+        <li>Cocokkan sidik jari kunci dengan yang diberikan pemiliknya lewat jalur terpercaya, misalnya bertemu langsung atau telepon.</li>
+      </ol>
+      <div class="actions"><button type="button" class="secondary" data-go="ttd">Buka tab Tanda tangan</button></div>
+    </section>
+
+    <section class="block">
+      <h2>Tips agar tetap aman</h2>
+      <ol class="steps">
+        <li>Kata sandi yang hilang tidak bisa dipulihkan. Simpan di tempat yang aman.</li>
+        <li>Jangan kirim kata sandi di pesan yang sama dengan berkas terkunci.</li>
+        <li>Jangan pernah membagikan kunci privat ke siapa pun.</li>
+        <li>Semua proses terjadi di peramban Anda dan tidak ada berkas yang dikirim ke server.</li>
+      </ol>
+    </section>
+  </div>
+
   <footer>Dibangun dengan Web Crypto API: AES-256-GCM, PBKDF2 (310.000 iterasi), SHA-256/512, dan ECDSA P-256. Tanpa server, tanpa pelacak.</footer>
 </main>
 
@@ -197,10 +275,13 @@ const sha = async (algo, data) => hex(await crypto.subtle.digest(algo, data));
 const slug = s => (s || 'kunci').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kunci';
 
 /* ---------- Tab ---------- */
-document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
-  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + b.dataset.tab));
-}));
+function selectTab(name) {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  window.scrollTo({ top: 0 });
+}
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => selectTab(b.dataset.tab)));
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => selectTab(b.dataset.go)));
 
 /* ---------- 1. Enkripsi simetris: AES-256-GCM + PBKDF2 ---------- */
 const MAGIC = 'BRNK1';
