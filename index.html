@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brankas Berkas – enkripsi, cek keaslian, dan tanda tangan digital</title>
+<meta name="description" content="Kunci berkas dengan kata sandi, cek keaslian lewat hash, dan tanda tangani dokumen secara digital. Semua berjalan di peramban Anda.">
+<style>
+:root{
+  --bg:#edf1f5;--surface:#ffffff;--ink:#172033;--muted:#5b667a;--line:#d3dae4;
+  --primary:#3730a3;--primary-ink:#ffffff;--ok:#146c36;--ok-bg:#e3f4e9;
+  --bad:#a61b1b;--bad-bg:#fbe7e7;--info-bg:#f1f4f8;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0f1522;--surface:#171f31;--ink:#e6ebf5;--muted:#9aa6bc;--line:#2a3550;
+  --primary:#8b86ff;--primary-ink:#0f1522;--ok:#6fd49a;--ok-bg:#12301f;
+  --bad:#ff9a9a;--bad-bg:#3a1717;--info-bg:#0f1522;}
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);min-height:100vh}
+main{max-width:760px;margin:0 auto;padding:32px 20px 56px}
+h1{font:700 2.4rem/1.15 Georgia,"Times New Roman",serif;margin:0 0 8px;letter-spacing:-.01em}
+h2{font:700 1.3rem/1.3 Georgia,"Times New Roman",serif;margin:0 0 4px}
+.lead{color:var(--muted);margin:0 0 24px;max-width:60ch}
+nav{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px;margin-bottom:24px}
+nav button{flex:1;border:0;background:transparent;color:var(--muted);font:600 .95rem system-ui,sans-serif;padding:10px 8px;border-radius:7px;cursor:pointer}
+nav button[aria-selected=true]{background:var(--primary);color:var(--primary-ink)}
+.panel{display:none}.panel.active{display:block}
+.intro{color:var(--muted);margin:0 0 8px;max-width:62ch}
+section.block{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px}
+section.block p.hint{color:var(--muted);margin:0 0 14px;font-size:.93rem}
+label{display:block;font-weight:600;font-size:.93rem;margin:14px 0 6px}
+input[type=text],input[type=password],textarea,input[type=file]{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 11px}
+input[type=file]{padding:7px}
+textarea{min-height:84px;resize:vertical}
+button.primary,button.secondary{font:600 .95rem system-ui,sans-serif;border-radius:7px;padding:10px 16px;cursor:pointer;border:1px solid var(--primary)}
+button.primary{background:var(--primary);color:var(--primary-ink);margin-top:16px}
+button.secondary{background:transparent;color:var(--primary)}
+button:disabled{opacity:.6;cursor:wait}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px}
+.result{margin-top:16px;border-radius:8px;padding:0}
+.result.info,.result.ok,.result.bad{padding:14px 16px}
+.result.info{background:var(--info-bg);border:1px solid var(--line)}
+.result.ok{background:var(--ok-bg);color:var(--ok)}
+.result.bad{background:var(--bad-bg);color:var(--bad)}
+.result code{display:block;font:.85rem/1.5 ui-monospace,Consolas,monospace;word-break:break-all;color:var(--ink)}
+.hashrow{margin-top:10px}.hashrow b{font-size:.85rem}
+.meta{font-size:.9rem;color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.stamp{display:inline-block;font:700 1.15rem Georgia,serif;border:3px solid currentColor;border-radius:6px;padding:4px 12px;transform:rotate(-3deg);margin:0 0 10px;animation:cap .35s ease-out}
+@keyframes cap{from{transform:rotate(-3deg) scale(1.5);opacity:0}to{transform:rotate(-3deg) scale(1);opacity:1}}
+@media (prefers-reduced-motion:reduce){.stamp{animation:none}}
+.fp{font:.85rem ui-monospace,Consolas,monospace}
+footer{color:var(--muted);font-size:.85rem;margin-top:28px}
+.note{font-size:.88rem;color:var(--muted);margin-top:10px}
+@media (max-width:520px){h1{font-size:1.9rem}nav button{font-size:.85rem;padding:9px 4px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Brankas Berkas</h1>
+  <p class="lead">Kunci berkas dengan kata sandi, cek apakah berkas masih asli, dan tanda tangani dokumen secara digital. Semuanya diproses di peramban Anda, tidak ada yang dikirim ke server.</p>
+
+  <nav role="tablist" aria-label="Fitur">
+    <button role="tab" aria-selected="true" data-tab="enkripsi">Kunci berkas</button>
+    <button role="tab" aria-selected="false" data-tab="hash">Cek keaslian</button>
+    <button role="tab" aria-selected="false" data-tab="ttd">Tanda tangan</button>
+  </nav>
+
+  <!-- ENKRIPSI -->
+  <div class="panel active" id="tab-enkripsi" role="tabpanel">
+    <p class="intro">Enkripsi simetris AES-256-GCM. Cocok untuk berkas nilai, data siswa, atau dokumen pribadi sebelum dikirim lewat WhatsApp, email, atau disimpan di flashdisk.</p>
+
+    <section class="block">
+      <h2>Kunci berkas</h2>
+      <p class="hint">Pilih berkas atau tulis pesan, lalu beri kata sandi. Hasilnya berkas berekstensi .brnk.</p>
+      <label for="encFile">Berkas</label>
+      <input type="file" id="encFile">
+      <label for="encText">Atau tulis pesan rahasia</label>
+      <textarea id="encText" placeholder="Pesan akan disimpan sebagai pesan.txt di dalam berkas terkunci"></textarea>
+      <label for="encPass">Kata sandi (minimal 8 karakter)</label>
+      <input type="password" id="encPass" autocomplete="new-password">
+      <button class="primary" id="encBtn">Kunci sekarang</button>
+      <div id="encOut" class="result" aria-live="polite"></div>
+      <p class="note">Kata sandi yang hilang tidak bisa dipulihkan. Simpan di tempat aman.</p>
+    </section>
+
+    <section class="block">
+      <h2>Buka berkas</h2>
+      <p class="hint">Pilih berkas .brnk dan masukkan kata sandi yang sama.</p>
+      <label for="decFile">Berkas .brnk</label>
+      <input type="file" id="decFile" accept=".brnk">
+      <label for="decPass">Kata sandi</label>
+      <input type="password" id="decPass" autocomplete="current-password">
+      <button class="primary" id="decBtn">Buka berkas</button>
+      <div id="decOut" class="result" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <!-- HASH -->
+  <div class="panel" id="tab-hash" role="tabpanel">
+    <p class="intro">Hash SHA-256 dan SHA-512 adalah sidik jari berkas. Satu byte saja berubah, hash-nya berubah total. Pakai untuk memastikan berkas unduhan sama dengan aslinya, atau salinan di flashdisk tidak rusak.</p>
+
+    <section class="block">
+      <h2>Hitung dan bandingkan</h2>
+      <label for="hashFile">Berkas</label>
+      <input type="file" id="hashFile">
+      <div id="hashOut" class="result" aria-live="polite"></div>
+      <label for="hashExpected">Hash resmi dari penyedia berkas (opsional)</label>
+      <input type="text" id="hashExpected" placeholder="Tempel hash SHA-256 atau SHA-512 di sini" spellcheck="false" autocomplete="off">
+      <label for="hashFile2">Atau bandingkan dengan berkas lain (opsional)</label>
+      <input type="file" id="hashFile2">
+      <div id="hashCmp" class="result" aria-live="polite"></div>
+    </section>
+  </div>
+
+  <!-- TANDA TANGAN -->
+  <div class="panel" id="tab-ttd" role="tabpanel">
+    <p class="intro">Tanda tangan digital ECDSA P-256 membuktikan dua hal: berkas benar dari pemilik kunci, dan isinya tidak diubah sejak ditandatangani. Cocok untuk surat, laporan, atau soal ujian yang dibagikan ke banyak orang.</p>
+
+    <section class="block">
+      <h2>1. Buat pasangan kunci</h2>
+      <p class="hint">Kunci privat untuk menandatangani, simpan sendiri. Kunci publik dibagikan ke penerima agar bisa memeriksa.</p>
+      <label for="kgName">Nama pemilik kunci</label>
+      <input type="text" id="kgName" placeholder="Contoh: Wahyu Prihanto" autocomplete="name">
+      <label for="kgPass">Kata sandi untuk melindungi kunci privat (disarankan)</label>
+      <input type="password" id="kgPass" autocomplete="new-password">
+      <button class="primary" id="kgBtn">Buat kunci</button>
+      <div id="kgOut" class="result" aria-live="polite"></div>
+    </section>
+
+    <section class="block">
+      <h2>2. Tanda tangani berkas</h2>
+      <label for="sgFile">Berkas yang ditandatangani</label>
+      <input type="file" id="sgFile">
+      <label for="sgKey">Kunci privat (.json)</label>
+      <input type="file" id="sgKey" accept=".json,application/json">
+      <label for="sgPass">Kata sandi kunci privat (jika diberi)</label>
+      <input type="password" id="sgPass" autocomplete="current-password">
+      <button class="primary" id="sgBtn">Tanda tangani</button>
+      <div id="sgOut" class="result" aria-live="polite"></div>
+    </section>
+
+    <section class="block">
+      <h2>3. Verifikasi tanda tangan</h2>
+      <label for="vfFile">Berkas yang diperiksa</label>
+      <input type="file" id="vfFile">
+      <label for="vfSig">Berkas tanda tangan (.sig.json)</label>
+      <input type="file" id="vfSig" accept=".json,application/json">
+      <label for="vfKey">Kunci publik penanda tangan (.json)</label>
+      <input type="file" id="vfKey" accept=".json,application/json">
+      <button class="primary" id="vfBtn">Periksa keaslian</button>
+      <div id="vfOut" class="result" aria-live="polite"></div>
+      <p class="note">Pastikan sidik jari kunci publik cocok dengan yang diberikan pemiliknya lewat jalur terpercaya.</p>
+    </section>
+  </div>
+
+  <footer>Dibangun dengan Web Crypto API: AES-256-GCM, PBKDF2 (310.000 iterasi), SHA-256/512, dan ECDSA P-256. Tanpa server, tanpa pelacak.</footer>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const te = new TextEncoder(), td = new TextDecoder();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+const readFile = async f => new Uint8Array(await f.arrayBuffer());
+const readJSON = async f => { try { return JSON.parse(td.decode(await readFile(f))); } catch { throw new Error('Berkas ' + f.name + ' bukan JSON yang valid.'); } };
+const need = (f, msg) => { if (!f) throw new Error(msg); return f; };
+
+function save(name, data, type = 'application/octet-stream') {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type }));
+  a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+function dl(label, name, data, type) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'secondary'; b.textContent = label;
+  b.onclick = () => save(name, data, type); return b;
+}
+function show(el, kind, html, btns = []) {
+  el.className = 'result ' + kind; el.innerHTML = html;
+  if (btns.length) { const d = document.createElement('div'); d.className = 'actions'; btns.forEach(b => d.append(b)); el.append(d); }
+}
+function clear(el) { el.className = 'result'; el.innerHTML = ''; }
+function run(btn, out, fn) {
+  btn.addEventListener('click', async () => {
+    const label = btn.textContent; btn.disabled = true; btn.textContent = 'Memproses…';
+    try { await fn(); } catch (e) { show(out, 'bad', '<strong>Gagal.</strong> ' + esc(e.message || e)); }
+    finally { btn.disabled = false; btn.textContent = label; }
+  });
+}
+const sha = async (algo, data) => hex(await crypto.subtle.digest(algo, data));
+const slug = s => (s || 'kunci').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'kunci';
+
+/* ---------- Tab ---------- */
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x === b));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + b.dataset.tab));
+}));
+
+/* ---------- 1. Enkripsi simetris: AES-256-GCM + PBKDF2 ---------- */
+const MAGIC = 'BRNK1';
+async function keyFrom(pass, salt) {
+  const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
+    base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function seal(data, pass, name) {
+  const meta = te.encode(JSON.stringify({ name, size: data.length, time: new Date().toISOString() }));
+  const plain = new Uint8Array(4 + meta.length + data.length);
+  new DataView(plain.buffer).setUint32(0, meta.length);
+  plain.set(meta, 4); plain.set(data, 4 + meta.length);
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await keyFrom(pass, salt), plain));
+  const out = new Uint8Array(33 + ct.length);
+  out.set(te.encode(MAGIC)); out.set(salt, 5); out.set(iv, 21); out.set(ct, 33);
+  return out;
+}
+async function unseal(buf, pass) {
+  if (buf.length < 50 || td.decode(buf.subarray(0, 5)) !== MAGIC) throw new Error('Ini bukan berkas hasil Brankas Berkas.');
+  let plain;
+  try {
+    plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.subarray(21, 33) },
+      await keyFrom(pass, buf.subarray(5, 21)), buf.subarray(33)));
+  } catch { throw new Error('Kata sandi salah, atau berkas sudah diubah atau rusak.'); }
+  const n = new DataView(plain.buffer).getUint32(0);
+  return { meta: JSON.parse(td.decode(plain.subarray(4, 4 + n))), data: plain.subarray(4 + n) };
+}
+
+run($('encBtn'), $('encOut'), async () => {
+  const f = $('encFile').files[0], txt = $('encText').value, pass = $('encPass').value;
+  if (!f && !txt) throw new Error('Pilih berkas atau tulis pesan terlebih dahulu.');
+  if (pass.length < 8) throw new Error('Kata sandi minimal 8 karakter.');
+  const data = f ? await readFile(f) : te.encode(txt);
+  const name = f ? f.name : 'pesan.txt';
+  const out = await seal(data, pass, name);
+  show($('encOut'), 'ok', '<span class="stamp">Terkunci</span><div>' + esc(name) + ' sudah dienkripsi dengan AES-256-GCM.</div>',
+    [dl('Unduh ' + name + '.brnk', name + '.brnk', out)]);
+});
+
+run($('decBtn'), $('decOut'), async () => {
+  const f = need($('decFile').files[0], 'Pilih berkas .brnk terlebih dahulu.');
+  const pass = $('decPass').value; if (!pass) throw new Error('Masukkan kata sandi.');
+  const { meta, data } = await unseal(await readFile(f), pass);
+  let html = '<span class="stamp">Terbuka</span><div>' + esc(meta.name) + ' (' + data.length.toLocaleString('id-ID') + ' byte) berhasil dibuka.</div>';
+  if (meta.name === 'pesan.txt') html += '<code style="margin-top:10px;white-space:pre-wrap">' + esc(td.decode(data)) + '</code>';
+  show($('decOut'), 'ok', html, [dl('Unduh ' + meta.name, meta.name, data)]);
+});
+
+/* ---------- 2. Hash: verifikasi integritas ---------- */
+async function updateHash() {
+  const f = $('hashFile').files[0], out = $('hashOut'), cmp = $('hashCmp');
+  if (!f) { clear(out); clear(cmp); return; }
+  const d = await readFile(f);
+  const h256 = await sha('SHA-256', d), h512 = await sha('SHA-512', d);
+  show(out, 'info', '<div class="meta">' + esc(f.name) + ' (' + f.size.toLocaleString('id-ID') + ' byte)</div>' +
+    '<div class="hashrow"><b>SHA-256</b><code>' + h256 + '</code></div>' +
+    '<div class="hashrow"><b>SHA-512</b><code>' + h512 + '</code></div>');
+  const exp = $('hashExpected').value.trim().toLowerCase().replace(/\s+/g, '');
+  const f2 = $('hashFile2').files[0];
+  const lines = []; let allOk = true;
+  if (exp) {
+    const ok = exp === h256 || exp === h512; allOk = allOk && ok;
+    lines.push(ok ? 'Hash yang ditempel cocok dengan berkas.' : 'Hash yang ditempel berbeda dari berkas. Berkas mungkin rusak atau sudah diubah.');
+  }
+  if (f2) {
+    const same = h256 === await sha('SHA-256', await readFile(f2)); allOk = allOk && same;
+    lines.push(same ? 'Isi kedua berkas identik.' : 'Isi kedua berkas berbeda.');
+  }
+  if (!lines.length) { clear(cmp); return; }
+  show(cmp, allOk ? 'ok' : 'bad', '<span class="stamp">' + (allOk ? 'Cocok' : 'Berbeda') + '</span>' + lines.map(l => '<div>' + esc(l) + '</div>').join(''));
+}
+['hashFile', 'hashFile2'].forEach(id => $(id).addEventListener('change', () => updateHash().catch(e => show($('hashOut'), 'bad', esc(e.message)))));
+$('hashExpected').addEventListener('input', () => updateHash().catch(() => {}));
+
+/* ---------- 3. Tanda tangan digital: ECDSA P-256 ---------- */
+const EC = { name: 'ECDSA', namedCurve: 'P-256' }, SIGN = { name: 'ECDSA', hash: 'SHA-256' };
+async function fingerprint(jwk) {
+  return (await sha('SHA-256', te.encode(jwk.x + '.' + jwk.y))).slice(0, 32).match(/.{4}/g).join(' ');
+}
+
+run($('kgBtn'), $('kgOut'), async () => {
+  const name = $('kgName').value.trim(); if (!name) throw new Error('Isi nama pemilik kunci.');
+  const pass = $('kgPass').value;
+  if (pass && pass.length < 8) throw new Error('Kata sandi kunci minimal 8 karakter, atau kosongkan.');
+  const kp = await crypto.subtle.generateKey(EC, true, ['sign', 'verify']);
+  const pub = await crypto.subtle.exportKey('jwk', kp.publicKey), priv = await crypto.subtle.exportKey('jwk', kp.privateKey);
+  const fp = await fingerprint(pub);
+  const pubFile = { app: 'Brankas Berkas', type: 'public', name, fingerprint: fp, jwk: pub };
+  const privFile = { app: 'Brankas Berkas', type: 'private', name, fingerprint: fp };
+  if (pass) { privFile.encrypted = true; privFile.data = b64(await seal(te.encode(JSON.stringify(priv)), pass, 'kunci-privat')); }
+  else { privFile.encrypted = false; privFile.jwk = priv; }
+  const s = slug(name);
+  show($('kgOut'), 'ok', '<span class="stamp">Kunci dibuat</span><div>Sidik jari: <span class="fp">' + fp + '</span></div>' +
+    '<div class="note">' + (pass ? 'Kunci privat dilindungi kata sandi.' : 'Kunci privat tidak diberi kata sandi, jaga berkasnya baik-baik.') + '</div>',
+    [dl('Unduh kunci privat', s + '.kunci-privat.json', JSON.stringify(privFile, null, 2), 'application/json'),
+     dl('Unduh kunci publik', s + '.kunci-publik.json', JSON.stringify(pubFile, null, 2), 'application/json')]);
+});
+
+run($('sgBtn'), $('sgOut'), async () => {
+  const f = need($('sgFile').files[0], 'Pilih berkas yang akan ditandatangani.');
+  const kf = need($('sgKey').files[0], 'Pilih berkas kunci privat.');
+  const k = await readJSON(kf);
+  if (k.type !== 'private') throw new Error('Ini bukan berkas kunci privat. Jangan pakai kunci publik untuk menandatangani.');
+  let jwk = k.jwk;
+  if (k.encrypted) {
+    const pass = $('sgPass').value; if (!pass) throw new Error('Kunci privat ini dilindungi kata sandi. Masukkan kata sandinya.');
+    jwk = JSON.parse(td.decode((await unseal(unb64(k.data), pass)).data));
+  }
+  const key = await crypto.subtle.importKey('jwk', jwk, EC, false, ['sign']);
+  const data = await readFile(f);
+  const sig = new Uint8Array(await crypto.subtle.sign(SIGN, key, data));
+  const sigFile = { app: 'Brankas Berkas', type: 'signature', algorithm: 'ECDSA-P256-SHA256', file: f.name, size: data.length,
+    sha256: await sha('SHA-256', data), signer: k.name, fingerprint: k.fingerprint, time: new Date().toISOString(), signature: b64(sig) };
+  show($('sgOut'), 'ok', '<span class="stamp">Ditandatangani</span><div>' + esc(f.name) + ' ditandatangani oleh ' + esc(k.name) + '.</div>' +
+    '<div class="note">Kirim berkas asli bersama berkas tanda tangan ini.</div>',
+    [dl('Unduh tanda tangan', f.name + '.sig.json', JSON.stringify(sigFile, null, 2), 'application/json')]);
+});
+
+run($('vfBtn'), $('vfOut'), async () => {
+  const f = need($('vfFile').files[0], 'Pilih berkas yang diperiksa.');
+  const sig = await readJSON(need($('vfSig').files[0], 'Pilih berkas tanda tangan.'));
+  const pk = await readJSON(need($('vfKey').files[0], 'Pilih berkas kunci publik.'));
+  if (sig.type !== 'signature' || !sig.signature) throw new Error('Berkas tanda tangan tidak dikenali.');
+  if (pk.type !== 'public' || !pk.jwk) throw new Error('Berkas kunci publik tidak dikenali.');
+  const key = await crypto.subtle.importKey('jwk', pk.jwk, EC, false, ['verify']);
+  const ok = await crypto.subtle.verify(SIGN, key, unb64(sig.signature), await readFile(f));
+  const fp = await fingerprint(pk.jwk);
+  if (ok) {
+    let extra = '';
+    if (sig.fingerprint && sig.fingerprint !== fp) extra = '<div class="note">Catatan: sidik jari di berkas tanda tangan berbeda dari kunci publik yang dipakai.</div>';
+    show($('vfOut'), 'ok', '<span class="stamp">Asli</span><div>Tanda tangan valid. Berkas ini ditandatangani oleh pemilik kunci <strong>' + esc(pk.name) +
+      '</strong> dan isinya belum diubah.</div><div class="meta">Sidik jari kunci: <span class="fp">' + fp + '</span><br>Waktu menurut penanda tangan: ' +
+      esc(sig.time ? new Date(sig.time).toLocaleString('id-ID') : '-') + '</div>' + extra);
+  } else {
+    show($('vfOut'), 'bad', '<span class="stamp">Tidak valid</span><div>Berkas sudah diubah setelah ditandatangani, atau tanda tangan ini bukan dibuat oleh kunci publik tersebut.</div>');
+  }
+});
+
+if (!window.crypto || !crypto.subtle) {
+  document.querySelector('.lead').insertAdjacentHTML('afterend',
+    '<div class="result bad">Peramban ini tidak mendukung Web Crypto. Buka lewat https:// (misalnya GitHub Pages) atau localhost.</div>');
+}
+</script>
+</body>
+</html>
