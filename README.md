@@ -57,3 +57,6 @@ Lalu di GitHub: **Settings → Pages → Build and deployment → Source: Deploy
 ## Lisensi
 
 MIT. Silakan dipakai dan dikembangkan.
+
+## Tujuan Pembuatan Aplikasi
+Untuk Menyelesaikan Tugas AKhir Semester Mata Kuliah Kriptografi dan Keamanan di Universitas Buya Hamka Jakarta
